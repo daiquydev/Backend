@@ -1,54 +1,30 @@
-import db from '#~/config/firebase.js'
+import user from '#~/model/user.js'
 
 import bcrypt from 'bcrypt'
 async function register({
 	email,
 	password,
-	role,
 	firstName,
-	lastName,
-    phoneNumber
+	lastName
 }) {
-
-	//check input
-	if(!email || !password || !role || !firstName || !lastName){
-		return Promise.reject({
-			status: 403,
-			message: 'Missing email, password, role, firstName or lastName!',
-		})
-	}
-
-	const userRecord = await db.collection("User").where("email", "==", email).get()
-	if (!userRecord.empty) {
+	const userRecord = await user.findOne({email})
+	if (userRecord) {
 		return Promise.reject({
 			status: 403,
 			message: 'The email has been registered',
 		})
-	} 
+	} else {
+		console.log("hello")
+		const saltRounds = 10
 
-	const saltRounds = 10
-	const hashedPassword = await bcrypt.hash(password, saltRounds)
+		const hashedPassword = await bcrypt.hash(password, saltRounds)
 
-	if(role != "police" && role != "user"){
-		return Promise.reject ({
-			status: 403,
-			message: `User registered failed!. Expected police or user but got <${role}>`,
-		})
+		return await user.create({
+            email,
+            password: hashedPassword,
+            firstName,
+            lastName
+        })
 	}
-
-	const newUser =  await db.collection("User").add({
-		email,
-		password: hashedPassword,
-		firstName,
-		lastName,
-		phoneNumber: phoneNumber || null,
-		role
-	})
-
-	return {
-		"message": "User registered successfully!",
-		"user_id": newUser.id
-	}
-	
 }
 export default register

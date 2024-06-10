@@ -1,29 +1,18 @@
 import bcrypt from 'bcrypt'
-import db from '#~/config/firebase.js'
-import createTokens from './createToken.js'
+import user from '#~/model/user.js'
 
 async function login({email, password}) {
-
-    //check input
-	if(!email || !password){
-		return Promise.reject({
-			status: 403,
-			message: 'Missing email, password!',
-		})
-	}
-
-    const userRecord = await db.collection("User").where("email", "==", email).get()
-    if (userRecord.empty) {
+    const userRecord = await user.findOne({email})
+    if (!userRecord) {
 		return Promise.reject({
 			status: 401,
 			message: 'Email not correct',
 		})
 	} else{
-        const userData = userRecord.docs[0].data()
-        const isPasswordRight= await bcrypt.compare(password, userData.password)
+        const isPasswordRight= await bcrypt.compare(password,userRecord.password)
         if(isPasswordRight)
         {
-            return await createTokens(userRecord.docs[0].id)
+            return await this.createToken(userRecord._id)
         }
         else{
             return Promise.reject({
